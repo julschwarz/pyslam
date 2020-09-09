@@ -44,25 +44,33 @@ class Config(object):
         self.root_folder = __location__
         self.config_file = 'config.ini'
         self.config_parser = configparser.ConfigParser()
+        self.config_parser.read(__location__ + '/' + self.config_file)
+
         self.cam_settings = None
         self.dataset_settings = None
-        self.dataset_type = None
         #self.current_path = os.getcwd()
         #print('current path: ', self.current_path)
 
-        self.config_parser.read(__location__ + '/' + self.config_file)
+        self.dataset_type = self.config_parser['DATASET']['type']
+
         self.set_core_lib_paths()
         self.read_lib_paths()
-        
         self.get_dataset_settings()
-        self.get_cam_settings()
+
+        print("DATASET TYPE:", self.dataset_type)
+        if self.dataset_type == "KITTI_DATASET":
+            self.get_kitti_cam_settings()
+        else:
+            self.get_cam_settings()
+
+    # --------------------------------- External Libraries  --------------------------------- #
 
     # read core lib paths from config.ini and set sys paths
     def set_core_lib_paths(self):
         self.core_lib_paths = self.config_parser['CORE_LIB_PATHS']
         for path in self.core_lib_paths:
             ext_path = __location__ + '/' + self.core_lib_paths[path]
-            # print( "importing path: ", ext_path )
+            print( "importing path: ", ext_path )
             sys.path.append(ext_path)
             
     # read lib paths from config.ini 
@@ -83,12 +91,12 @@ class Config(object):
                     sys.path.insert(0,ext_path)
         else: 
             print('cannot set lib: ', lib_name)
-            
+
+    # --------------------------------- Dataset & Camera Settings --------------------------------- #
+
     # get dataset settings
     def get_dataset_settings(self):
-        self.dataset_type = self.config_parser['DATASET']['type']
         self.dataset_settings = self.config_parser[self.dataset_type]
-
         self.dataset_path = self.dataset_settings['base_path'];
         self.dataset_settings['base_path'] = os.path.join( __location__, self.dataset_path)
         #print('dataset_settings: ', self.dataset_settings)
@@ -101,8 +109,25 @@ class Config(object):
             with open(self.settings_doc, 'r') as stream:
                 try:
                     self.cam_settings = yaml.load(stream, Loader=yaml.FullLoader)
+                    print("cam settings: ", self.cam_settings)
                 except yaml.YAMLError as exc:
                     print(exc)
+
+    # get camera settings from calib.txt
+    def get_kitti_cam_settings(self):
+        self.cam_settings = None
+        self.cam_settings =  {'Camera.fx': 707.0912,
+         'Camera.fy': 707.0912, 'Camera.cx': 601.8873, 'Camera.cy': 183.1104, 'Camera.k1': 0.0, 'Camera.k2': 0.0,
+         'Camera.p1': 0.0, 'Camera.p2': 0.0, 'Camera.width': 1226, 'Camera.height': 370, 'Camera.fps': 10.0,
+         'Camera.bf': 379.8145, 'Camera.RGB': 1, 'ThDepth': 40, 'ORBextractor.nFeatures': 1000,
+         'ORBextractor.scaleFactor': 1.2, 'ORBextractor.nLevels': 8, 'ORBextractor.iniThFAST': 12,
+         'ORBextractor.minThFAST': 7}
+        calib_file = np.genfromtxt(__location__ + '/../data/kitti/kitti_odometry_greyscale_22GB/calib/' + self.dataset_settings['name'] + '/calib.txt')
+        self.cam_settings['Camera.fx'] = calib_file[0][1]
+        self.cam_settings['Camera.cx'] = calib_file[0][6]
+        self.cam_settings['Camera.fy'] = calib_file[0][3]
+        self.cam_settings['Camera.cy'] = calib_file[0][7]
+
 
     # calibration matrix
     @property
@@ -115,6 +140,7 @@ class Config(object):
             self._K = np.array([[fx,  0, cx],
                                 [ 0, fy, cy],
                                 [ 0,  0,  1]])
+            print("Camera Matrix: ", self._K)
         return self._K
 
     # inverse of calibration matrix
@@ -129,6 +155,7 @@ class Config(object):
                                    [   0, 1/fy, -cy/fy],
                                    [   0,    0,      1]])
         return self._Kinv
+
 
     # distortion coefficients
     @property
@@ -167,6 +194,7 @@ class Config(object):
     def fps(self):
         if not hasattr(self, '_fps'):
             self._fps= self.cam_settings['Camera.fps']
+            print("ORIGINAL FPS: ", self._fps)
         return self._fps    
 
 

@@ -43,6 +43,16 @@ class FeatureTrackerConfigs(object):
     # Test/Template configuration: you can use this to quickly test 
     # - your custom parameters and 
     # - favourite descriptor and detector (check the file feature_types.py)
+    JULIANA = dict(num_features=kNumFeatures,
+                num_levels=8,
+                # N.B: some detectors/descriptors do not allow to set num_levels or they set it on their own
+                scale_factor=1.2,
+                # N.B: some detectors/descriptors do not allow to set scale_factor or they set it on their own
+                detector_type=FeatureDetectorTypes.FAST,
+                descriptor_type=FeatureDescriptorTypes.ORB2,
+                match_ratio_test=kRatioTest,
+                tracker_type=kTrackerType)
+
     TEST = dict(num_features=kNumFeatures,                   
                 num_levels = 8,                                  # N.B: some detectors/descriptors do not allow to set num_levels or they set it on their own
                 scale_factor = 1.2,                              # N.B: some detectors/descriptors do not allow to set scale_factor or they set it on their own

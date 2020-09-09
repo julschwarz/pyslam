@@ -22,6 +22,7 @@ import numpy as np
 import json
 import math 
 import cv2
+import datetime as dt
 
 from collections import Counter, deque
 
@@ -38,7 +39,10 @@ from map_point import MapPoint
 from utils import Printer
 
 import g2o
-import optimizer_g2o 
+import optimizer_g2o
+
+import open3d as o3d
+import config
 
 
 kVerbose = True 
@@ -99,9 +103,10 @@ class Map(object):
         with self._lock:       
             return self.keyframes.copy()     
                 
-    def get_last_keyframe(self): 
-        with self._lock:         
-            return self.keyframes[-1]    
+    def get_last_keyframe(self):
+        if len(self.keyframes) > 1:
+            with self._lock:
+                return self.keyframes[-1]
                 
     # get the last N=local_window map keyframes          
     def get_last_keyframes(self, local_window=Parameters.kLocalBAWindow): 
@@ -184,6 +189,29 @@ class Map(object):
             img_draw = self.frames[-1].draw_all_feature_trails(img)
             return img_draw
         return img
+
+    def export_ply(self):
+
+        points = [p.pt.tolist() for p in self.points]
+        colors = [list(map(lambda x: x/255, p.color)) for p in self.points]
+        normals = [p.normal.tolist() for p in self.points]
+
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(points) # self.points
+        pcd.colors = o3d.utility.Vector3dVector(colors)
+        pcd.normals = o3d.utility.Vector3dVector(normals)
+
+        # Triangle mesh:
+        #poisson_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=8, width=0, scale=1.1, linear_fit=False)[0]
+        #bbox = pcd.get_axis_aligned_bounding_box()
+        #p_mesh_crop = poisson_mesh.crop(bbox)
+
+        # Point cloud:
+        #o3d.io.write_triangle_mesh(config.cfg.root_folder + "/results/p_meshed_c.ply", p_mesh_crop)
+        filepath = config.cfg.root_folder + "/results/" + str(dt.datetime.now().date()) + "_" + str(dt.datetime.now().time()) + "_pointcloud.ply"
+        o3d.io.write_point_cloud(filepath, pcd)
+
+        print("Point cloud saved under ", config.cfg.root_folder + "/results/p_mesh_c.ply")
 
 
     # add new points to the map from 3D point estimations, frames and pairwise matches
@@ -338,7 +366,7 @@ class Map(object):
                     color = (255, 0, 0)
                     
                 # add the point to this map                 
-                mp = MapPoint(p[0:3], color, kf2, idx2_i) 
+                mp = MapPoint(p[0:3], color, kf2, idx2_i)
                 self.add_point(mp) # add point to this map 
                 mp.add_observation(kf1, idx1_i)                    
                 mp.add_observation(kf2, idx2_i)                   

@@ -41,3 +41,4 @@ tqdm==4.43.0
 Werkzeug==1.0.0
 wrapt==1.12.1
 yacs==0.1.6
+open3d

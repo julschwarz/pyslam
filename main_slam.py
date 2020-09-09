@@ -17,9 +17,7 @@
 * along with PYSLAM. If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as np
 import cv2
-import math
 import time 
 
 import platform 
@@ -31,25 +29,13 @@ from camera  import PinholeCamera
 from ground_truth import groundtruth_factory
 from dataset import dataset_factory
 
-#from mplot3d import Mplot3d
-#from mplot2d import Mplot2d
 from mplot_thread import Mplot2d, Mplot3d
-
-if platform.system()  == 'Linux':     
-    from display2D import Display2D  #  !NOTE: pygame generate troubles under macOS!
 
 from viewer3D import Viewer3D
 from utils import getchar, Printer 
 
-from feature_tracker import feature_tracker_factory, FeatureTrackerTypes 
-from feature_manager import feature_manager_factory
-from feature_types import FeatureDetectorTypes, FeatureDescriptorTypes, FeatureInfo
-from feature_matcher import feature_matcher_factory, FeatureMatcherTypes
-
+from feature_tracker import feature_tracker_factory, FeatureTrackerTypes
 from feature_tracker_configs import FeatureTrackerConfigs
-
-from parameters import Parameters  
-import multiprocessing as mp 
 
 
 if __name__ == "__main__":
@@ -73,7 +59,7 @@ if __name__ == "__main__":
 
     # select your tracker configuration (see the file feature_tracker_configs.py) 
     # FeatureTrackerConfigs: SHI_TOMASI_ORB, FAST_ORB, ORB, ORB2, ORB2_FREAK, BRISK, AKAZE, FAST_FREAK, SIFT, ROOT_SIFT, SURF, SUPERPOINT, FAST_TFEAT
-    tracker_config = FeatureTrackerConfigs.TEST
+    tracker_config = FeatureTrackerConfigs.JULIANA
     tracker_config['num_features'] = num_features
     tracker_config['tracker_type'] = tracker_type
     
@@ -85,10 +71,10 @@ if __name__ == "__main__":
     time.sleep(1) # to show initial messages 
 
     viewer3D = Viewer3D()
-    
-    if platform.system()  == 'Linux':    
-        display2d = Display2D(cam.width, cam.height)  # pygame interface 
-    else: 
+
+    if platform.system()  == 'Linux':
+        display2d = Display2D(cam.width, cam.height)  # pygame interface
+    else:
         display2d = None  # enable this if you want to use opencv window
 
     matched_points_plt = Mplot2d(xlabel='img id', ylabel='# matches',title='# matches')    
@@ -103,6 +89,7 @@ if __name__ == "__main__":
             print('..................................')
             print('image: ', img_id)                
             img = dataset.getImageColor(img_id)
+            print(dataset.getOxts(img_id))
             if img is None:
                 print('image is empty')
                 getchar()
@@ -117,6 +104,8 @@ if __name__ == "__main__":
                 # 3D display (map display)
                 if viewer3D is not None:
                     viewer3D.draw_map(slam)
+                    print("keyframes: ", slam.map.get_keyframes())
+                    print("keyframes no: ", slam.map.num_keyframes())
 
                 img_draw = slam.map.draw_feature_trails(img)
                     
@@ -186,8 +175,32 @@ if __name__ == "__main__":
             break
         
         if viewer3D is not None:
-            is_paused = not viewer3D.is_paused()         
-                        
+            is_paused = not viewer3D.is_paused()
+
+        if img_id > 200:
+            print("final keyframes: ", slam.map.get_keyframes())
+            print("final keyframes no: ", slam.map.num_keyframes())
+            slam.map.export_ply()
+            if display2d is not None:
+                display2d.quit()
+            if viewer3D is not None:
+                viewer3D.quit()
+            if matched_points_plt is not None:
+                matched_points_plt.quit()
+            break
+
+    #slam.local_mapping.export_ply()
+    #print(slam.tracking.local_points) # = []
+    # print(viewer3D.map_state) # = None
+    #print(slam.tracking.local_mapping.slam_states)
+    #print(slam.tracking.tracking_history.slam_states)
+    #map_state.points = np.array(map_state.points)
+    #map_state.colors = np.array(map_state.colors) / 256.
+    #print(slam.map.num_keyframes())
+
+
+
+
     slam.quit()
     
     #cv2.waitKey(0)
