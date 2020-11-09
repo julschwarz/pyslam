@@ -16,7 +16,7 @@
 * You should have received a copy of the GNU General Public License
 * along with PYSLAM. If not, see <http://www.gnu.org/licenses/>.
 """
-import sys 
+
 import math 
 from enum import Enum
 import numpy as np 

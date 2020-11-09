@@ -27,7 +27,7 @@ from feature_matcher import feature_matcher_factory, FeatureMatcherTypes
 
 from utils import Printer, import_from
 from utils_geom import hamming_distance, hamming_distances, l2_distance, l2_distances
-from parameters import Parameters 
+from parameters import Parameters
 
 
 kMinNumFeatureDefault = 2000
